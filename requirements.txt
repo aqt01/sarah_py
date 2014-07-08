@@ -1,1 +1,2 @@
--e git+https://github.com/tgalal/yowsup#egg=Yowsup # Yowsup
+Flask==0.10.1
+python-dateutil
