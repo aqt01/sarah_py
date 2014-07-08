@@ -52,8 +52,8 @@ class WhatsappListenerClient:
 		self.methodsInterface.call("auth_login", (username, password))
 		
 		
-		while True:
-			raw_input()	
+		#while True:
+		#	raw_input()	
 
 	def onAuthSuccess(self, username):
 		print("Authed %s" % username)
@@ -72,7 +72,29 @@ class WhatsappListenerClient:
 		if wantsReceipt and self.sendReceipts:
 			self.methodsInterface.call("message_ack", (jid, messageId))
 
+# First we init the whatsapp listener
+import base64
 listener = WhatsappListenerClient()
-listener.login(username='18092998692',password='9i11OtykMJ8LOPvgGYCjhFQCLKk=')
-#listener.__init__()
+password = ''
+vUsername = ''
+vBase64Pwd = base64.b64decode(bytes(password.encode('utf-8')))
+listener.login(username=vUsername,password=vBase64Pwd)
+
+
+#Then we init the web server
+from flask import Flask
+from flask import request
+app = Flask(__name__)
+
+@app.route("/send_message", methods=['POST'])
+def send_message():
+	if request.method == 'POST':
+		user_to = request.form['user']
+		msg_content = request.form['message']
+		#We send msg via whatsapp
+		
+    return "Hello World!"
+
+if __name__ == "__main__":
+    app.run()
 	
