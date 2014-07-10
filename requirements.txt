@@ -1,3 +1,4 @@
+-e git+https://github.com/tgalal/yowsup#egg=Yowsup # Yowsup
 Flask==0.10.1
 Flask-RESTful==0.2.12
 Jinja2==2.7.3
