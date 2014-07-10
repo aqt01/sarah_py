@@ -1,6 +1,6 @@
 '''
 Copyright (c) <2012> Tarek Galal <tare2.galal@gmail.com>
-
+`
 Permission is hereby granted, free of charge, to any person obtaining a copy of this 
 software and associated documentation files (the "Software"), to deal in the Software 
 without restriction, including without limitation the rights to use, copy, modify, 
@@ -20,9 +20,11 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 '''
 
 import os
+import base64
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.sys.path.insert(0,parentdir)
 import datetime, sys
+from requests import put, get
 
 if sys.version_info >= (3, 0):
 	raw_input = input
@@ -38,15 +40,9 @@ class WhatsappListenerClient:
 		connectionManager.setAutoPong(keepAlive)
 
 		self.signalsInterface = connectionManager.getSignalsInterface()
-		self.methodsInterface = connectionManager.getMethodsInterface()
+		self.methodsInterface = connectionManager.getMethodsInterface()		
+#		self.cm = connectionManager
 		
-		self.signalsInterface.registerListener("message_received", self.onMessageReceived)
-		self.signalsInterface.registerListener("auth_success", self.onAuthSuccess)
-		self.signalsInterface.registerListener("auth_fail", self.onAuthFailed)
-		self.signalsInterface.registerListener("disconnected", self.onDisconnected)
-		
-		self.cm = connectionManager
-	
 	def login(self, username, password):
 		self.username = username
 		self.methodsInterface.call("auth_login", (username, password))
@@ -68,33 +64,74 @@ class WhatsappListenerClient:
 	def onMessageReceived(self, messageId, jid, messageContent, timestamp, wantsReceipt, pushName, isBroadCast):
 		formattedDate = datetime.datetime.fromtimestamp(timestamp).strftime('%d-%m-%Y %H:%M')
 		print("%s [%s]:%s"%(jid, formattedDate, messageContent))
-
+		print jid
+   	        requests.post('http://localhost:5000/' + jid, data={'msg': messageContent }).json()
 		if wantsReceipt and self.sendReceipts:
 			self.methodsInterface.call("message_ack", (jid, messageId))
+	
 
-# First we init the whatsapp listener
-import base64
+	def onMessageSent(jid, messageId):
+		print "Message was sent successfully to %s" % jid
+
+	def onMessageDelivered(jid, messageId):
+		print "Message was delivered successfully to %s" %jid
+		methodsInterface.call("delivered_ack", (jid, messageId))
+
+		# First we init the whatsapp listener
+
 listener = WhatsappListenerClient()
+
 password = ''
 vUsername = ''
 vBase64Pwd = base64.b64decode(bytes(password.encode('utf-8')))
 listener.login(username=vUsername,password=vBase64Pwd)
 
+listener.signalsInterface.registerListener("receipt_messageSent",listener.onMessageSent)
+listener.signalsInterface.registerListener("receipt_messageDelivered", listener.onMessageDelivered)
+listener.signalsInterface.registerListener("message_received", listener.onMessageReceived)
+listener.signalsInterface.registerListener("auth_success", listener.onAuthSuccess)
+listener.signalsInterface.registerListener("auth_fail", listener.onAuthFailed)
+listener.signalsInterface.registerListener("disconnected", listener.onDisconnected)	
 
-#Then we init the web server
+
 from flask import Flask
-from flask import request
+from flask.ext.restful import reqparse, abort, Api, Resource, request
+
+messages = {}
+
 app = Flask(__name__)
+api = Api(app)
+parser = reqparse.RequestParser()
 
-@app.route("/send_message", methods=['POST'])
-def send_message():
-	if request.method == 'POST':
-		user_to = request.form['user']
-		msg_content = request.form['message']
-		#We send msg via whatsapp
-		
-    return "Hello World!"
+@app.route ('/')
 
-if __name__ == "__main__":
-    app.run()
+# For sending messages
+class WpSend(Resource):
+	def post(self):
+		json = request.json
+		msg = json['msg']
+		msg = msg.encode('ascii', 'ignore')
+		numb = json['number']
+		numb = numb.encode('ascii','ignore')
+		listener.methodsInterface.call("message_send", (numb + "@s.whatsapp.net", msg )) 
+		print ("Sended: " + msg + " To: " + numb)
+
+# For storing and showing messages
+class WpMsg(Resource):
+	def post(self,numb):
+		json = request.json
+		msg = json['msg']
+		msg = msg.encode('ascii', 'ignore')
+		numb = numb
+#		numb = num.encode('ascii', 'ignore')
+		messages[numb] = msg
 	
+	def get(self, numb ):
+		return { numb : messages[numb] }
+
+api.add_resource(WpSend,'/message')
+api.add_resource(WpMsg,'/<string:numb>')
+
+if __name__ == '__main__':
+	app.run(debug=True)
+
