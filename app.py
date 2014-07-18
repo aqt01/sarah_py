@@ -24,7 +24,8 @@ import base64
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.sys.path.insert(0,parentdir)
 import datetime, sys
-from requests import put, get
+import requests
+import json
 
 if sys.version_info >= (3, 0):
 	raw_input = input
@@ -40,7 +41,13 @@ class WhatsappListenerClient:
 		connectionManager.setAutoPong(keepAlive)
 
 		self.signalsInterface = connectionManager.getSignalsInterface()
-		self.methodsInterface = connectionManager.getMethodsInterface()		
+		self.methodsInterface = connectionManager.getMethodsInterface()	
+		self.signalsInterface.registerListener("receipt_messageSent",self.onMessageSent)
+		self.signalsInterface.registerListener("receipt_messageDelivered", self.onMessageDelivered)
+		self.signalsInterface.registerListener("message_received", self.onMessageReceived)
+		self.signalsInterface.registerListener("auth_success", self.onAuthSuccess)
+		self.signalsInterface.registerListener("auth_fail", self.onAuthFailed)
+		self.signalsInterface.registerListener("disconnected", self.onDisconnected)		
 #		self.cm = connectionManager
 		
 	def login(self, username, password):
@@ -65,7 +72,9 @@ class WhatsappListenerClient:
 		formattedDate = datetime.datetime.fromtimestamp(timestamp).strftime('%d-%m-%Y %H:%M')
 		print("%s [%s]:%s"%(jid, formattedDate, messageContent))
 		print jid
-   	        requests.post('http://localhost:5000/' + jid, data={'msg': messageContent }).json()
+		payload = {"message": {"content":" + messageContent + ", \"phone\":" + jid +" } }"
+		#payload = {"message": {"content": "ativo", "phone": "18298647935@s.whatsapp.net"}}
+		requests.post('http://localhost:3000/messages', data=payload)
 		if wantsReceipt and self.sendReceipts:
 			self.methodsInterface.call("message_ack", (jid, messageId))
 	
@@ -81,17 +90,10 @@ class WhatsappListenerClient:
 
 listener = WhatsappListenerClient()
 
-password = ''
-vUsername = ''
+password = 'NzWbfEQHv+4HvFtLKppjYQ49cVM='
+vUsername = '18097800487'
 vBase64Pwd = base64.b64decode(bytes(password.encode('utf-8')))
 listener.login(username=vUsername,password=vBase64Pwd)
-
-listener.signalsInterface.registerListener("receipt_messageSent",listener.onMessageSent)
-listener.signalsInterface.registerListener("receipt_messageDelivered", listener.onMessageDelivered)
-listener.signalsInterface.registerListener("message_received", listener.onMessageReceived)
-listener.signalsInterface.registerListener("auth_success", listener.onAuthSuccess)
-listener.signalsInterface.registerListener("auth_fail", listener.onAuthFailed)
-listener.signalsInterface.registerListener("disconnected", listener.onDisconnected)	
 
 
 from flask import Flask
