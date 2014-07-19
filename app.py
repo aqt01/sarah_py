@@ -38,7 +38,7 @@ class WhatsappListenerClient:
 		self.sendReceipts = sendReceipts
 		
 		connectionManager = YowsupConnectionManager()
-		connectionManager.setAutoPong(keepAlive)
+		connectionManager.setAutoPong(True)
 
 		self.signalsInterface = connectionManager.getSignalsInterface()
 		self.methodsInterface = connectionManager.getMethodsInterface()	
@@ -48,12 +48,16 @@ class WhatsappListenerClient:
 		self.signalsInterface.registerListener("auth_success", self.onAuthSuccess)
 		self.signalsInterface.registerListener("auth_fail", self.onAuthFailed)
 		self.signalsInterface.registerListener("disconnected", self.onDisconnected)		
+		self.signalsInterface.registerListener("ping", self.onPing)
 #		self.cm = connectionManager
 		
 	def login(self, username, password):
 		self.username = username
 		self.methodsInterface.call("auth_login", (username, password))
 		
+	def onPing(pingId):
+    		methodsInterface.call("pong", (pingId,))
+
 		
 		#while True:
 		#	raw_input()	
@@ -72,7 +76,7 @@ class WhatsappListenerClient:
 		formattedDate = datetime.datetime.fromtimestamp(timestamp).strftime('%d-%m-%Y %H:%M')
 		print("%s [%s]:%s"%(jid, formattedDate, messageContent))
 		print jid
-		payload = {"message": {"content":" + messageContent + ", \"phone\":" + jid +" } }"
+		payload = {"message": {"content": messageContent, "phone": jid } }
 		#payload = {"message": {"content": "ativo", "phone": "18298647935@s.whatsapp.net"}}
 		requests.post('http://localhost:3000/messages', data=payload)
 		if wantsReceipt and self.sendReceipts:
@@ -90,8 +94,8 @@ class WhatsappListenerClient:
 
 listener = WhatsappListenerClient()
 
-password = ''
-vUsername = ''
+password = 'CYVdwlv6OA8wT7TEej/0WIbZkHk='
+vUsername = '18097800487'
 vBase64Pwd = base64.b64decode(bytes(password.encode('utf-8')))
 listener.login(username=vUsername,password=vBase64Pwd)
 
