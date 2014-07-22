@@ -1,6 +1,6 @@
 '''
 Copyright (c) <2012> Tarek Galal <tare2.galal@gmail.com>
-`
+
 Permission is hereby granted, free of charge, to any person obtaining a copy of this 
 software and associated documentation files (the "Software"), to deal in the Software 
 without restriction, including without limitation the rights to use, copy, modify, 
@@ -76,12 +76,16 @@ class WhatsappListenerClient:
 		formattedDate = datetime.datetime.fromtimestamp(timestamp).strftime('%d-%m-%Y %H:%M')
 		print("%s [%s]:%s"%(jid, formattedDate, messageContent))
 		print jid
-		payload = {"message": {"content": messageContent, "phone": jid } }
+		payload = {"content": messageContent, "phone": jid.split('@')[0] }
+		headers = {'content-type': 'application/json'}
 		#payload = {"message": {"content": "ativo", "phone": "18298647935@s.whatsapp.net"}}
-		requests.post('http://localhost:3000/messages', data=payload)
+		print payload
+		import json
+		print json.dumps(payload)
+		requests.post('http://192.168.43.251:3000/messages.json', data=json.dumps(payload), headers=headers)
 		if wantsReceipt and self.sendReceipts:
 			self.methodsInterface.call("message_ack", (jid, messageId))
-	
+
 
 	def onMessageSent(jid, messageId):
 		print "Message was sent successfully to %s" % jid
@@ -139,5 +143,5 @@ api.add_resource(WpSend,'/message')
 api.add_resource(WpMsg,'/<string:numb>')
 
 if __name__ == '__main__':
-	app.run(debug=True)
+	app.run(host='0.0.0.0',debug=True, port=5000)
 
