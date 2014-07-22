@@ -94,8 +94,8 @@ class WhatsappListenerClient:
 
 listener = WhatsappListenerClient()
 
-password = 'UDjRDRITg4p9ckesQr+tZOu3Vo8='
-vUsername = '18097800487'
+password = ''
+vUsername = ''
 vBase64Pwd = base64.b64decode(bytes(password.encode('utf-8')))
 listener.login(username=vUsername,password=vBase64Pwd)
 
